@@ -122,3 +122,17 @@ function withdrawContractFunds() public payable onlyOwner auctionIsClosed {
 ```
 En el contrato hay un mapping que ingresa el monto de las ofertas asociado a la clave de la address del oferente y un array destinado a registrar las ofertas que es necesario reembolsar. En esta versión básica del contrato no tienen mucha funcionalidad, pero están pensados la función avanzada de retirar fondos de ofertas anteriores.
 La función **returnMoney()** implementa una interfase que también planea utilizarse para las devoluciones parciales.
+
+El siguiente paso es implementar las funciones avanzadas:
+🚀 Funcionalidades Avanzadas
+🔁 Reembolso parcial
+Durante la subasta, los participantes pueden retirar el importe por encima de su última oferta válida.
+
+Ejemplo:
+
+Tiempo	Usuario	Oferta
+T0	Usuario 1	1 ETH
+T1	Usuario 2	2 ETH
+T2	Usuario 1	3 ETH
+→ Usuario 1 puede pedir el reembolso de la oferta T0 (1 ETH).
+
