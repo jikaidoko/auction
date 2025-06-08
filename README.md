@@ -77,8 +77,16 @@ También hay una condición, solicitada por la consigna, para **añadir un tiemp
             timeLimit = newTimeLimit;
         }
 ```
-Hay una función para cerrar la subasta. El sentido que tiene es obligar al propietario del contrato a ejecutarla para habilitar las funciones que requieren que la subasta haya terminado.
-
+Hay una función para cerrar la subasta. El sentido que tiene es obligar al propietario del contrato a ejecutarla para habilitar las funciones que requieren que la subasta haya terminado:
+```
+    function closeAuction() public onlyOwner returns (bool _endAuction) {
+    if (block.timestamp>=timeLimit+extratime){
+                return endAuction=true;
+    }
+    emit EndAuction(string (auctionFinished));
+    }
+```
+Esta función emite un alerta **auctionFinished**, anunciando que "la subasta a finalizado".
 El modificador **auctionIsClosed()** habilita las funciones reservadas para el final de la subasta. En esta versión del contrato no fue aplicada a la función de publicar la lista de las ofertas:
 ```
         function publishBids() public view returns (AuctionStruct[] memory) {
