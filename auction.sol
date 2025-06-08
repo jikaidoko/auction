@@ -13,6 +13,7 @@ contract Auction {
     address public biddingAddress;
     uint256 public amount;
     uint256 public highestBid;
+    string public auctionFinished;
     bool public endAuction;
     bool refundDone;
 
@@ -33,6 +34,9 @@ contract Auction {
 
     //Evento para notificar cuando se hace una oferta superadora
     event Bid(address bidder, uint256 amount);
+
+    //Evento para notificar que la subasta ha finalizado
+    event EndAuction(string auctionFinished);
     
     /*El constructor inicia la subasta 
     con los parámetros necesarios para su funcionamiento*/
@@ -44,6 +48,7 @@ contract Auction {
          endAuction = false;
          highestBid= 1;
          amount=1;
+         auctionFinished = "La subasta ha finalizado";
     }
 
 
@@ -113,10 +118,11 @@ contract Auction {
     }
 
     //Función para cerrar la subasta
-    function end() public onlyOwner returns (bool _endAuction) {
+    function closeAuction() public onlyOwner returns (bool _endAuction) {
     if (block.timestamp>=timeLimit+extratime){
                 return endAuction=true;
     }
+    emit EndAuction(string (auctionFinished));
     }
         //Publicamos la address y la oferta del ganador de la subasta
         function publishWinner() public view returns (address , uint256){
