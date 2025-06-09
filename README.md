@@ -26,7 +26,7 @@
 
 
 ##### Detalles del código de la rama del repositorio:
-#####*Subasta básica*
+##### *Subasta básica*
 La versión inicial del contrato procura cumplir con las todas funciones básicas requeridas en el trabajo práctico.
 No posee una función específica para iniciar la subasta, porque esta se inicia al desplegar el contrato, estableciendo el tiempo de inicio directamente en el constructor:
 ```
