@@ -4,46 +4,66 @@
 
 #### *Instrucciones de uso*
 ###### - 📦 Constructor:
-###### La subasta se inicia al desplegar el contrato
+###### Al desplegar el contrato se define el propietario de la subasta.
+###### Es el encargado de dar inicio a la misma mediante la función *openAuction()* en la que debe definir la duración y el tiempo extra de la subasta en el caso de recibir ofertas minutos antes del cierre.
 ###### - 🏷️ Función para ofertar
 ###### La función *newBid()* permite realizar la puja 
 ###### La nueva oferta es válida si:
 - Es mayor en al menos 5% que la mayor oferta actual.
 - Se realiza mientras la subasta está activa.
-- No debe realizarla el propietario del contrato
+- No debe realizarla el propietario de la subasta.
 - No puede volver a ofertar el mayor oferente (debe esperar a que su oferta sea superada por otro)
 
-######  - 🥇 Mostrar ganador
-######  - La función *publishWinner()* devuelve el oferente ganador y el valor de la oferta ganadora.
+###### - 🥇 Mostrar ganador
+###### - La función *publishWinner()* devuelve la dirección del oferente ganador y el valor de la oferta ganadora.
 ###### - 📜 Mostrar ofertas
 ###### - La función *publishBids()* devuelve la lista de oferentes y sus respectivos montos ofrecidos.
 ###### - 💸 Devolver depósitos
 ###### - La función *returnMoney()* devuelve el depósito a los oferentes no ganadores al finalizar la subasta (Se descuenta una comisión del 2%).
+###### - 🚀 Funcionalidades Avanzadas
+###### - 🔁 Reembolso parcial. Durante la subasta, los participantes pueden retirar el importe por encima de su última oferta válida mediante la función *refundPreviousBids()*.
+
+
+###### Ejemplo:
+| Tiempo  | Usuario  | Oferta  |
+| ------------ | ------------ | ------------ |
+| T0   | Usuario 1  | 1 ETH  |
+|  T1 | Usuario 2  | 2 ETH   |
+| T2  | Usuario 1  | 3 ETH   |
+
+###### → Usuario 1 puede pedir el reembolso de la oferta T0 (1 ETH).
 
 ------------
+###### 💰 Manejo de depósitos
+###### Las ofertas son depositadas en el contrato con la función payable *newBid()*.
+###### Están asociadas a las direcciones de los oferentes en un struct denominado *AuctionStruct*. Este se guarda en un array que permite tener un seguimiento de todas las ofertas realizadas.
+------------
+###### 📢 Eventos del contrato
+- Subasta Iniciada: Emitido cuando el propietario lanza la subasta.
+- Nueva Oferta: Emitido cuando se realiza una nueva oferta.
+- Tiempo Extra: Emitido cuando una oferta se realiza en los últimos 10 minutos y se añade tiempo extra para seguir ofertando.
+- Subasta Finalizada: Emitido cuando finaliza la subasta.
+_____________
+_____________
 
-
-
-
-##### Detalles del código de la rama del repositorio:
-##### *Subasta básica*
-La versión inicial del contrato procura cumplir con las todas funciones básicas requeridas en el trabajo práctico.
-No posee una función específica para iniciar la subasta, porque esta se inicia al desplegar el contrato, estableciendo el tiempo de inicio directamente en el constructor:
+##### Detalles del código:
+##### *Subasta avanzada*
+La versión final del contrato procura cumplir con las todas funciones requeridas en el trabajo práctico, tanto las básicas como las avanzadas.
+Posee una función específica para iniciar la subasta. Está restringida al propietario del contrato y solicita los parámetros de la duración del contrato y del tiempo extra que se asigna: 
 ```
-constructor() {
-         owner = msg.sender;
-         startTime = block.timestamp;
-         timeLimit = startTime + 120 minutes;
-         extratime= 10 minutes;
-         endAuction = false;
-         highestBid= 1;
-         amount=1;
+function openAuction(uint256 _timeLimit, uint256 _extratime) public onlyOwner returns (bool) {
+        require(startAuction == false, "La subasta ya ha iniciado");
+        startTime = block.timestamp;
+        timeLimit= startTime + _timeLimit;
+        extratime = _extratime;
+        //emitimos un alerta para informar la apertura de la subasta
+        emit StartAuction(string (auctionStarted));
+        return startAuction = true;
     }
 ```
-La versión avanzada propone en cambio una función específica para iniciar la subasta, de manera que el tiempo de la misma no haya expirado al momento de evaluar el funcionamiento del Smart Contract. 
-La función de iniciar la subasta debería estar restringida idealmente al propietario del contrato, pero esto supondría una limitación al momento de interactuar con el mismo.
 
-La función **newBid()** es el método principal para poder realizar las nuevas ofertas de la subasta:
+
+La función payable **newBid()** es el método principal para poder realizar las nuevas ofertas de la subasta:
 ```
 function newBid() public payable {}
 ```
@@ -63,15 +83,25 @@ La consigna solicita que **las nuevas ofertas superen a la oferta anterior en un
         "La nueva oferta debe superar al menos un 5 por ciento a la oferta anterior");
 }
 ```
-La nueva oferta **emite un alerta** tal como solicitaba la consigna:
+La nueva oferta **emite un alerta** con la dirección del oferente y el monto asociado, tal como solicitaba la consigna:
 ```
 emit Bid(msg.sender, highestBid);
 ```
-También hay una condición, solicitada por la consigna, para **añadir un tiempo extra** si se realiza una oferta en los últimos diez minutos:
+También hay una condición, dentro de la función **newBid()** solicitada por la consigna, para **añadir un tiempo extra** si se realiza una oferta en los últimos diez minutos:
 ```
-        if (timeLimit - block.timestamp < 10 minutes){
-            newTimeLimit = timeLimit + extraTime;
+if (timeLimit - block.timestamp < 10 minutes){
+            newTimeLimit = timeLimit + extratime;
+            //Sumamos el tiempo extra y se lo asignamos al tiempo límite
             timeLimit = newTimeLimit;
+            //emitimos un alerta para informar que se ha añadido tiempo extra
+            emit ExtraTime (string (extraTime)); 
+        }
+```
+La función **publishWinner()** se encarga de publicar al ganador de la subasta:
+```
+        function publishWinner() public view returns (address , uint256){
+            return (auctList[auctList.length-1].biddingAddress, 
+            auctList[auctList.length-1].amount);
         }
 ```
 Hay una función para cerrar la subasta. El sentido que tiene es obligar al propietario del contrato a ejecutarla para habilitar las funciones que requieren que la subasta haya terminado.
@@ -84,34 +114,26 @@ Hay una función para cerrar la subasta. El sentido que tiene es obligar al prop
     }
 ```
 Esta función emite un alerta **auctionFinished**, anunciando que "la subasta a finalizado".
-El modificador **auctionIsClosed()** habilita las funciones reservadas para el final de la subasta. En esta versión del contrato no fue aplicada a la función de publicar la lista de las ofertas:
+El modificador **auctionIsClosed()** habilita las funciones reservadas para el final de la subasta. 
 ```
         function publishBids() public view returns (AuctionStruct[] memory) {
             return auctList;
         }
 ```
 
-Ni a la función de publicar al ganador de la subasta:
+La función de devolver el dinero de las ofertas no ganadoras **returnMoney()**, necesariamente debe realizarse al finalizar la subasta:
 ```
-        function publishWinner() public view returns (address , uint256){
-            return (auctList[auctList.length-1].biddingAddress, 
-            auctList[auctList.length-1].amount);
+    function returnMoney() public payable onlyOwner auctionIsClosed returns (bool) {
+        for (uint i = 0 ;i<auctList.length-1;i++){
+            uint refundAmount = refundList[i].amount - (refundList[i].amount * 2 / 100);
+            require (address(this).balance >= refundAmount, "Fondos insuficientes en el contrato");
+            (bool sent,) = payable (refundList[i].biddingAddress).call {value: refundAmount}("");
+            require(sent, "No se han podido enviar los fondos");    
         }
+        return refundDone = true;
+    }
 ```
-Esto es sólo para permitir acceder a estos datos durante la duración de la subasta con fines de testear el funcionamiento de la misma.
-Sin embargo sí condiciona a la función de devolver el dinero de las ofertas no ganadoras. Necesariamente eso debe realizarse al finalizar la subasta:
-```
- function returnMoney() public payable onlyOwner auctionIsClosed returns (bool) {
-            for (uint i = 0 ;i<auctList.length-1;i++){
-                uint refundAmount = refundList[i].amount - (refundList[i].amount * 2 / 100);
-                require (address(this).balance >= refundAmount, "Fondos insuficientes en el contrato");
-                (bool sent,) = payable (refundList[i].biddingAddress).call {value: refundAmount}("");
-                require(sent, "No se han podido enviar los fondos");
-            }
-            return refundDone = true;
-        }
-```
-Esta función arroja un booleano que condiciona la posibilidad de recolectar los fondos remanentes del contrato a que todas las ofertas ganadoras ya se hayan devuelto, para evitar una mala acción por parte del propietario del contrato:
+Esta función arroja un booleano **refundDone = true;** que condiciona la posibilidad de recolectar los fondos remanentes del contrato a que todas las ofertas ganadoras ya se hayan devuelto, para evitar una mala acción por parte del propietario del contrato:
 ```
 function withdrawContractFunds() public payable onlyOwner auctionIsClosed {
         require(address(this).balance > 0, "No hay fondos para retirar");
@@ -120,19 +142,33 @@ function withdrawContractFunds() public payable onlyOwner auctionIsClosed {
         require(success, "Fallo al retirar fondos");
     }
 ```
-En el contrato hay un mapping que ingresa el monto de las ofertas asociado a la clave de la address del oferente y un array destinado a registrar las ofertas que es necesario reembolsar. En esta versión básica del contrato no tienen mucha funcionalidad, pero están pensados la función avanzada de retirar fondos de ofertas anteriores.
-La función **returnMoney()** implementa una interfase que también planea utilizarse para las devoluciones parciales.
+La función avanzada que permite a los oferentes retirar los montos de sus ofertas previas, luego de realizar una nueva crea potenciales riesgos de devolver el dinero en ambas ocasiones, tanto al momento de su reclamo como al finalizar la subasta.
+En el contrato hay un mapping que ingresa el último monto ofertado y lo asocia a la clave de la address del oferente:
+```
+  mapping(address => uint256) public bids;
+```
+También hay un array de structs destinado a registrar las ofertas que es necesario reembolsar:
+```
+ AuctionStruct[] public refundList;
+```
+La función **refundPreviousBids()** compara la dirección del oferente asociada al monto de la última oferta realizada, registradas en el mapping, con los montos asociados al array de structs que contienen el historial de ofertas que ese oferente ha realizado previamente, permitiéndole retirar los fondos de sus ofertas previas. Luego de realizado el reembolso se le asigna un valor 0 al monto de la oferta realizada, lo que impide que se vuelva a reembolsar a futuro.
+```
+    function refundPreviousBids() public payable {
+        for (uint i=0;i<refundList.length;i++) {
+            uint refundPreviousBidsAmount = refundList[i].amount - (refundList[i].amount * 2 / 100);
+            require (address(this).balance >= refundPreviousBidsAmount, "Fondos insuficientes en el contrato");
+            //Si la dirección del oferente aparece en la lista de reembolsos 
+            // y no coincide con su oferta actual hacemos la transacción
+            if(msg.sender == refundList[i].biddingAddress && bids[msg.sender]!= refundList[i].amount){  
+            (bool sent,) = payable (refundList[i].biddingAddress).call {value: refundPreviousBidsAmount}("");
+            require(sent, "No se han podido enviar los fondos");
+            //Una vez retirados los fondos le asignamos el valor en 0
+            //para evitar volver a transferirle los fondos al finalizar la subasta
+            refundList[i].amount = 0; 
+            }
+        }
+    }
+```
+En la versión final se ha removido la implementación de la interfase porque generaba problemas a la hora de verificar el contrato y no era estrictamente necesaria.
 
-El siguiente paso es implementar las funciones avanzadas:
-🚀 Funcionalidades Avanzadas
-🔁 Reembolso parcial
-Durante la subasta, los participantes pueden retirar el importe por encima de su última oferta válida.
-
-Ejemplo:
-
-Tiempo	Usuario	Oferta
-T0	Usuario 1	1 ETH
-T1	Usuario 2	2 ETH
-T2	Usuario 1	3 ETH
-→ Usuario 1 puede pedir el reembolso de la oferta T0 (1 ETH).
 
