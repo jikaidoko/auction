@@ -1,6 +1,6 @@
 # TRABAJO PRÁCTICO
 ## *Fundamentos de Solidity*
-### ETH KipuMódulo 2
+### ETH Kipu Módulo 2
 
 #### *Instrucciones de uso*
 ###### - 📦 Constructor:
